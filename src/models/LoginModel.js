@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const validator = require('validator');
+const bcryptjs = require('bcryptjs');
 
 const LoginSchema = new mongoose.Schema({
   email: { type: String, required: true },
@@ -33,15 +34,18 @@ class Login {
   }
 
   async register() {
-    this.validaInputs();
-    if (this.errors.length > 0) return;
-    //sempre que for realizar operações com BD, preciso obrigatoriaente trabalhar com async e await, precisa envolver tudo que for await em um bloco try
-    try {
-        this.user = await LoginModel.create(this.body);
-    } catch (error) {
-        console.log(error)
-    }
-}
+    this.valida();
+    if(this.errors.length > 0) return;
+
+    await this.userExists();
+
+    if(this.errors.length > 0) return;
+
+    const salt = bcryptjs.genSaltSync();
+    this.body.password = bcryptjs.hashSync(this.body.password, salt);
+
+    this.user = await LoginModel.create(this.body);
+  }
 
   async userExists() {
     this.user = await LoginModel.findOne({ email: this.body.email });
